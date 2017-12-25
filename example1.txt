@@ -1,10 +1,19 @@
 mylist WORD PTR 3 dup(0)
 lea ebx,mylist
 add [ebx],0x5
-add ebx,4
+add ebx,8
 mov eax,0x2
 mov ecx,0x4
 mul ecx
 mov [ebx],eax
-add ebx.4
+add ebx,4
 add [ebx],0x14
+yourlist WORD PTR 6 dup(0)
+lea edx,yourlist
+add [edx],0x10
+mov [edx],eax
+add edx,4
+mov [edx],ecx
+add ecx,4
+add edx,4
+mov [edx],ecx
