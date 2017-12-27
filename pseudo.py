@@ -2,6 +2,7 @@
 
 import sys
 
+
 filename= str(sys.argv[1])
 
 TAB="     "
@@ -25,13 +26,39 @@ is_jumping=False
 is_branch_added=False
 C_PROGRAM = C_PROGRAM_START
 temp_output=""
+if_starting_index=0
+if_finishing_index=0
+else_starting_index=0
+else_finishing_index=0
+in_if=False
+in_else=False
 i = 0
 file = open(filename, "r") 
-for line in file: 
+k = 0
+
+def incurly(starting_index,finishing_index):
+	additional_string=""
+
+	for k in range(starting_index,finishing_index): 
+		line = lines[k].split()
+		if line[0]=="db":	
+			additional_string = additional_string + TAB+TAB+"printf("+ line[1]+");"+NEW_LINE
+
+	return additional_string
+
+for line in file:
+	lines.append(line)
+for k in range(len(lines)): 
+	print "    NEW LINE"
 	print 'i',i 
+	line = lines[k].split()
 	print line
-	line = line.split()
-	
+
+	print "line0"+line[0]
+	print jump_point
+	#if jump_point in line[0]:
+	#	print "ananxdxdxdxd"
+
 	# initializing array
 	#if "ebx" in register_index:
 	#	print register_index["ebx"]
@@ -39,8 +66,27 @@ for line in file:
 
 
 	if ":" in line[0]:
-		C_PROGRAM = C_PROGRAM + TAB+"}"+NEW_LINE
-		break
+		if in_if:
+			print "here"
+			C_PROGRAM = C_PROGRAM +incurly(if_starting_index,if_finishing_index)+NEW_LINE+TAB+"}"+NEW_LINE
+			in_if=False
+	#		k=k+if_finishing_index-if_starting_index
+			break
+
+
+		else:
+			print "nothere"
+			in_else=False
+			C_PROGRAM = C_PROGRAM +incurly(else_starting_index,else_finishing_index)+NEW_LINE+TAB+"}"+NEW_LINE
+	#		k=k+else_finishing_index-else_starting_index
+			break
+
+	#	print k
+	#	print if_starting_index
+	#	print if_finishing_index 
+	#	k=k+if_finishing_index-if_starting_index
+	#	print k
+		
 
 	elif line[0]=="leave":
 
@@ -51,7 +97,6 @@ for line in file:
 		continue
 
 	elif line[0]=="db":	
-
 		C_PROGRAM = C_PROGRAM + TAB+TAB+"printf("+ line[1]+");"+NEW_LINE
 
 	elif line[1]=="WORD":
@@ -107,7 +152,7 @@ for line in file:
 				register = line[1].split(',')[0]
 				register_variable[register]="var"+str(number_of_variable)
 				number_of_variable+=1
-				C_PROGRAM=C_PROGRAM+TAB+"int "+register_variable[register]+"="+line[1].split(',')[1]+";"+NEW_LINE
+				C_PROGRAM=C_PROGRAM+TAB+"int "+register_variable[register]+" = "+line[1].split(',')[1]+";"+NEW_LINE
 				register_values[register]=str(line[1].split(',')[1])
 			
 	elif line[0] == "mul":
@@ -116,13 +161,20 @@ for line in file:
 			register_values["eax"] = str(int(register_values["eax"])*int(register_values[register]))
 		
 	elif line[0] == "div": 
-			
-			register = line[1]
-			register_values["edx"]="0"
-			#print register_values[register]
-			#print register_values["eax"]
-			register_values["edx"]=str(int(register_values["eax"])%int(register_values[register]))
-			last_register=register
+			nextlinesplit=lines[i+1].split()
+			nextnextlinesplit=lines[i+2].split()
+			if nextlinesplit[0]=="cmp" and nextlinesplit[1].split(',')[0] == "edx":
+				# if ( eax % ebx == 0 ) {}
+				if nextnextlinesplit[0]=="JZ":
+					i=i+2
+					register = line[1]
+					register_values["edx"]="0"
+					register_values["edx"]=str(int(register_values["eax"])%int(register_values[register]))
+					last_register=register
+					jump_point=nextnextlinesplit[1]
+					C_PROGRAM=C_PROGRAM+TAB+"if ( "+register_variable["eax"]+" % "+register_variable[register]+" == 0 ) {"+ NEW_LINE
+					else_starting_index=i
+
 
 	elif line[0] == "cmp" :
 
@@ -148,33 +200,28 @@ for line in file:
 						boolean_condition_is_zero=True 
 					temp_line=" % "+register_variable[last_register]+" == "+str(int(line[1].split(',')[1]))+")  {"+NEW_LINE
 
-	elif line[0] == "JZ":
-		jump_point=line[1]
-
-		if boolean_condition_is_zero:
-			is_jumping=True
-		else:
-			is_jumping=False
-		C_PROGRAM=C_PROGRAM+TAB+"if ( "+temp_line
-
+	
+	
 
 	elif line[0] == "JMP":
-		jump_point=line[1]
+		nextline=lines[k+1][:-1]
+		if jump_point+":" == nextline:
+			C_PROGRAM=C_PROGRAM+TAB+"else { "+ NEW_LINE
+		else_finishing_index=i
+		
 
-		if boolean_condition_is_zero:
-			is_jumping=True
-		else:
-			is_jumping=False
-
-		if not is_branch_added:
-			C_PROGRAM=C_PROGRAM+TAB+"else { "
-
-	elif jump_point+":" == line[0]:
-			print "here"
-			is_jumping=False
+	elif jump_point in line[0]:
+			print "xdxdxdxdxdxdxd"
+			in_if=True
+			in_else=False
+			if_starting_index=i
+			else_finishing_index=i-1
+	else :
+		print "elseline0",line[0]
 
 	i = i+1
-
+	print "k",str(k)
+	k=i
 print "\n"
 
 C_PROGRAM = C_PROGRAM+C_PROGRAM_END
